@@ -27,10 +27,13 @@ import subprocess
 import sys
 import unittest
 
-from report import report
+from report import go
+
+class BazelException(Exception):
+  pass
 
 class LcovParseException(Exception):
-    pass
+  pass
 
 def parse_cov(lcov_lines, with_zero=False):
   """Parse code coverage data into coverage results per source node.
@@ -81,18 +84,37 @@ def parse_cov(lcov_lines, with_zero=False):
 
   return files
 
+
+WORKSPACE_NAME = 'hchauvin_bazel_coverage_example'
+R_PREFIX = WORKSPACE_NAME + '/R/'
+
 class CoverageTest(unittest.TestCase):
-  def coverage(self, targets, options=[]):
+  def coverage(self, targets, options=[], instrumentation_filter=None):
+    if instrumentation_filter:
+      options.append("--instrumentation_filter=" + instrumentation_filter)
     cmd = [
       "bazel", 
       "coverage", 
-    ] + targets + options
-    out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+    ] + targets + options + [
+      "--test_output=errors",
+    ]
+    p_out = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    out = p_out.communicate()[0]
+    if p_out.returncode != 0:
+      print(out)
+      raise BazelException("non-zero return code: %d" % p_out.returncode)
     infos = re.finditer(r"(//[^ ]+)[^\n]+\n +([^\n]+)", out)
     ans = {}
     for info in infos:
       target = info.group(1)
       ans[target] = info.group(2)
+    if not instrumentation_filter:
+      m = re.search(r"--instrumentation_filter: \"([^\"]+)\"", out)
+      if not m:
+        print(out)
+        raise BazelException("implicit --instrumentation_filter not found")
+      instrumentation_filter = m.group(1)
+    ans[".instrumentation_filter"] =instrumentation_filter
     return ans
 
   def assertCoverage(self, lcov_path=None, lcov_lines=None, files=None, functions=None, lines=None):
@@ -123,7 +145,7 @@ class CoverageTest(unittest.TestCase):
       "//jvm:java_ExampleATest", 
       "//jvm:java_ExampleBTest", 
       "//jvm:java_ExampleCTest",
-    ], ["--instrumentation_filter=//jvm:java"])
+    ], instrumentation_filter="//jvm:java")
     self.assertCoverage(cov["//jvm:java_ExampleATest"], functions = {
       "com/github/hchauvin/bazelcoverageexample/Foo::exampleA ()Ljava/lang/String;": 1,
     })
@@ -139,14 +161,14 @@ class CoverageTest(unittest.TestCase):
   def test_java_examples_transitive(self):
     cov = self.coverage([
       "//jvm:java_Foo2ExampleATest",
-    ], ["--instrumentation_filter=//jvm:java2"])
+    ], instrumentation_filter="//jvm:java2")
     self.assertCoverage(cov["//jvm:java_Foo2ExampleATest"], functions = {
       "com/github/hchauvin/bazelcoverageexample/Foo2::exampleA ()Ljava/lang/String;": 1,
     })
 
     cov_transitive = self.coverage([
       "//jvm:java_Foo2ExampleATest",
-    ], ["--instrumentation_filter=//jvm"])
+    ], instrumentation_filter="//jvm")
     self.assertCoverage(
       cov_transitive["//jvm:java_Foo2ExampleATest"],
       files = {
@@ -166,7 +188,7 @@ class CoverageTest(unittest.TestCase):
     # NOTE: File names are currently a mess for clang, and not really usable for coverage.
     cov = self.coverage([
       "//clang:bar_test",
-    ], ["--instrumentation_filter=//clang:bar"])
+    ], instrumentation_filter="//clang:bar")
     self.assertCoverage(
       cov["//clang:bar_test"],
       functions = {
@@ -176,7 +198,7 @@ class CoverageTest(unittest.TestCase):
 
     cov = self.coverage([
       "//clang:foo_test",
-    ], ["--instrumentation_filter=//clang:foo"])
+    ], instrumentation_filter="//clang:foo")
     self.assertCoverage(
       cov["//clang:foo_test"],
       functions = {
@@ -186,7 +208,7 @@ class CoverageTest(unittest.TestCase):
 
     cov_transitive = self.coverage([
       "//clang:bar_test",
-    ], ["--instrumentation_filter=//clang:bar,//clang:foo"])
+    ], instrumentation_filter="//clang:bar,//clang:foo")
     self.assertCoverage(
       cov["//clang:bar_test"],
       functions = {
@@ -199,10 +221,10 @@ class CoverageTest(unittest.TestCase):
   def test_golang(self):
     cov = self.coverage([
       "//go/bar:go_default_test",
-    ], ["--instrumentation_filter=//go/bar"])
+    ], instrumentation_filter="//go/bar")
     with open(cov["//go/bar:go_default_test"], 'r') as cp:
       self.assertCoverage(
-        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lcov_lines = go.Coverprofile(cp).to_lcov(),
         lines = {
           "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
             '21': 1,
@@ -214,10 +236,10 @@ class CoverageTest(unittest.TestCase):
 
     cov = self.coverage([
       "//go/foo:go_default_test",
-    ], ["--instrumentation_filter=//go/foo"])
+    ], instrumentation_filter="//go/foo")
     with open(cov["//go/foo:go_default_test"], 'r') as cp:
       self.assertCoverage(
-        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lcov_lines = go.Coverprofile(cp).to_lcov(),
         lines = {
           "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
             '17': 1,
@@ -229,10 +251,10 @@ class CoverageTest(unittest.TestCase):
 
     cov_transitive = self.coverage([
       "//go/bar:go_default_test",
-    ], ["--instrumentation_filter=//go/bar,//go/foo"])
+    ], instrumentation_filter="//go/bar,//go/foo")
     with open(cov_transitive["//go/bar:go_default_test"], 'r') as cp:
       self.assertCoverage(
-        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lcov_lines = go.Coverprofile(cp).to_lcov(),
         lines = {
           "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
             '21': 1,
@@ -249,10 +271,10 @@ class CoverageTest(unittest.TestCase):
 
     cov_cumulative = self.coverage([
       "//go/...",
-    ], ["--instrumentation_filter=//go/bar,//go/foo"])
+    ], instrumentation_filter="//go/bar,//go/foo")
     with open(cov_cumulative["//go/bar:go_default_test"], 'r') as cp:
       self.assertCoverage(
-        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lcov_lines = go.Coverprofile(cp).to_lcov(),
         lines = {
           "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
             '21': 1,
@@ -268,7 +290,7 @@ class CoverageTest(unittest.TestCase):
       )
     with open(cov_cumulative["//go/foo:go_default_test"], 'r') as cp:
       self.assertCoverage(
-        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lcov_lines = go.Coverprofile(cp).to_lcov(),
         lines = {
           "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
             '17': 1,
@@ -277,6 +299,89 @@ class CoverageTest(unittest.TestCase):
           },
         },
       )
+
+  # TODO: make it work
+  # def test_r_omnibus(self):
+  #   cov = self.coverage([
+  #     "//R/...",
+  #   ])
+  #   self.assertSetEqual(set(cov.keys()), {
+  #     ".instrumentation_filter", 
+  #     "//R/exampleA:test",
+  #     "//R/exampleC:test", 
+  #     "//R/testSrc:test",
+  #   })
+  #   self.assertEqual(
+  #     cov[".instrumentation_filter"], 
+  #     "//R")
+  #   self.assertCoverage(
+  #     cov["//R/exampleA:test"],
+  #     lines = {
+  #       R_PREFIX + "exampleA/R/fn.R": {
+  #         '16': 1,
+  #       },
+  #     },
+  #   )
+  #   self.assertCoverage(
+  #     cov["//R/exampleC:test"],
+  #     lines = {
+  #       R_PREFIX + "exampleA/R/fn.R": {
+  #         '16': 2,
+  #       },
+  #       R_PREFIX + "exampleC/R/fn.R": {
+  #         '16': 1,
+  #       },
+  #     },
+  #   )
+      
+  #   # //R/testSrc:test
+  #   fn_c = {
+  #     '25': 1,
+  #     '27': 1,
+  #     '29': 1,
+  #   }
+
+  #   # The starting lines of functions are not instrumented by clang
+  #   if sys.platform == "darwin":
+  #     fn_c.update({
+  #       '23': 2,
+  #     })
+  #     get_character_c = {
+  #       '18': 2,
+  #     }
+  #   else:
+  #     fn_c.update({
+  #       '22': 1,
+  #       '23': 1,
+  #     })
+  #     get_character_c = {
+  #       '17': 1,
+  #       '18': 1,
+  #     }
+
+  #   self.assertCoverage(
+  #     cov["//R/testSrc:test"],
+  #     lines = {
+  #       R_PREFIX + "testSrc/R/fn.R": {
+  #         '16': 1,
+  #       },
+  #       R_PREFIX + "testSrc/src/fn.c": fn_c,
+  #       R_PREFIX + "testSrc/src/lib/getCharacter.c": get_character_c,
+  #     },
+  #   )
+
+  # def test_r_single_package(self):
+  #   cov = self.coverage([
+  #     "//R/exampleC:test",
+  #   ])
+  #   self.assertCoverage(
+  #     cov["//R/exampleC:test"],
+  #     lines = {
+  #       R_PREFIX + "exampleC/R/fn.R": {
+  #         '16': 1,
+  #       },
+  #     },
+  #   )
 
 
 if __name__ == '__main__':
