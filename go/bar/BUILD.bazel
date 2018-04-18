@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["bar.go"],
+    importpath = "github.com/hchauvin/bazel-coverage-example/go/bar",
+    visibility = ["//visibility:public"],
+    deps = ["//go/foo:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["bar_test.go"],
+    embed = [":go_default_library"],
+)

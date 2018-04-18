@@ -21,25 +21,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import io
 import re
 import subprocess
+import sys
 import unittest
+
+from report import report
 
 class LcovParseException(Exception):
     pass
 
-def parse_cov(lcov_path, with_lines=False, with_zero=False):
+def parse_cov(lcov_lines, with_zero=False):
   """Parse code coverage data into coverage results per source node.
   Use lcov and linecount data to create a map of source nodes to
   corresponding total and tested line counts.
   Args:
-    lcov_path: File path to lcov coverage data.
+    lcov_lines: Lines within the lcov file.
   Returns:
     List of strings with comma separated source node and coverage.
   """
-  lcov_file = open(lcov_path, 'r')
   files = {}
-  for line in lcov_file:
+  for line in lcov_lines:
     line = line.strip()
 
     # Set the current srcfile name for a new src file declaration.
@@ -48,7 +51,7 @@ def parse_cov(lcov_path, with_lines=False, with_zero=False):
       functions = {}
       srcfile_name = line[len('SF:'):]
 
-    if with_lines and line[:len('DA:')] == 'DA:':
+    if line[:len('DA:')] == 'DA:':
       line_info = line[len('DA:'):].split(',')
       if len(line_info) != 2:
         raise LcovParseException('DA: line format unexpected - %s' % line)
@@ -70,11 +73,12 @@ def parse_cov(lcov_path, with_lines=False, with_zero=False):
     if line == 'end_of_record':
       files[srcfile_name] = {
         "functions": functions,
+        "lines": lines,
       }
-      if with_lines:
-        files[srcfile_name]["lines"] = lines
 
-  lcov_file.close()
+  if len(files) == 0:
+    raise LcovParseException("no coverage info was found")
+
   return files
 
 class CoverageTest(unittest.TestCase):
@@ -91,16 +95,28 @@ class CoverageTest(unittest.TestCase):
       ans[target] = info.group(2)
     return ans
 
-  def assertCoverage(self, lcov_path, files=None, functions=None):
-    lcov = parse_cov(lcov_path)
+  def assertCoverage(self, lcov_path=None, lcov_lines=None, files=None, functions=None, lines=None):
+    close_here = False
+    if not lcov_lines:
+      lcov_stream = open(lcov_path, 'r')
+      lcov_lines = lcov_stream.readlines()
+      close_here = True
+    lcov = parse_cov(lcov_lines)
     if functions:
       actual_functions = {}
       for file in lcov:
         actual_functions.update(lcov[file]["functions"])
       self.assertDictEqual(functions, actual_functions)
+    if lines:
+      actual_lines = {}
+      for file in lcov:
+        actual_lines[file] = lcov[file]["lines"]
+      self.assertDictEqual(lines, actual_lines)
     if files:
       actual_files = lcov.keys()
       self.assertSetEqual(set(files), set(actual_files))
+    if close_here:
+      lcov_stream.close()
 
   def test_java_examples(self):
     cov = self.coverage([
@@ -143,6 +159,10 @@ class CoverageTest(unittest.TestCase):
       })
 
   def test_clang(self):
+    if sys.platform == "darwin":
+      # Until issue in Bazel is resolved, see clang/BUILD
+      return
+
     # NOTE: File names are currently a mess for clang, and not really usable for coverage.
     cov = self.coverage([
       "//clang:bar_test",
@@ -151,6 +171,16 @@ class CoverageTest(unittest.TestCase):
       cov["//clang:bar_test"],
       functions = {
         "bar": 1,
+      },
+    )
+
+    cov = self.coverage([
+      "//clang:foo_test",
+    ], ["--instrumentation_filter=//clang:foo"])
+    self.assertCoverage(
+      cov["//clang:foo_test"],
+      functions = {
+        "foo": 1,
       },
     )
 
@@ -165,6 +195,88 @@ class CoverageTest(unittest.TestCase):
         "main": 1,
       },
     )
+
+  def test_golang(self):
+    cov = self.coverage([
+      "//go/bar:go_default_test",
+    ], ["--instrumentation_filter=//go/bar"])
+    with open(cov["//go/bar:go_default_test"], 'r') as cp:
+      self.assertCoverage(
+        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lines = {
+          "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
+            '21': 1,
+            '22': 1,
+            '23': 1,
+          },
+        },
+      )
+
+    cov = self.coverage([
+      "//go/foo:go_default_test",
+    ], ["--instrumentation_filter=//go/foo"])
+    with open(cov["//go/foo:go_default_test"], 'r') as cp:
+      self.assertCoverage(
+        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lines = {
+          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+            '17': 1,
+            '18': 1,
+            '19': 1,
+          },
+        },
+      )
+
+    cov_transitive = self.coverage([
+      "//go/bar:go_default_test",
+    ], ["--instrumentation_filter=//go/bar,//go/foo"])
+    with open(cov_transitive["//go/bar:go_default_test"], 'r') as cp:
+      self.assertCoverage(
+        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lines = {
+          "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
+            '21': 1,
+            '22': 1,
+            '23': 1,
+          },
+          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+            '17': 1,
+            '18': 1,
+            '19': 1,
+          },
+        },
+      )
+
+    cov_cumulative = self.coverage([
+      "//go/...",
+    ], ["--instrumentation_filter=//go/bar,//go/foo"])
+    with open(cov_cumulative["//go/bar:go_default_test"], 'r') as cp:
+      self.assertCoverage(
+        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lines = {
+          "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
+            '21': 1,
+            '22': 1,
+            '23': 1,
+          },
+          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+            '17': 1,
+            '18': 1,
+            '19': 1,
+          },
+        },
+      )
+    with open(cov_cumulative["//go/foo:go_default_test"], 'r') as cp:
+      self.assertCoverage(
+        lcov_lines = report.Coverprofile(cp).to_lcov(),
+        lines = {
+          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+            '17': 1,
+            '18': 1,
+            '19': 1,
+          },
+        },
+      )
 
 
 if __name__ == '__main__':
