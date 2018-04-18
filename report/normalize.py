@@ -12,21 +12,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 from report import go
 
 class SourceFilenameNormalizer:
-  def __init__(self, go_importmap = None):
+  def __init__(self, go_importmap = None, java_paths = None, workspace_name = None, dest_dir = None):
     self.go_importmap = go_importmap
+    self.java_paths = java_paths
+    self.dest_dir = dest_dir
+    self.workspace_name = workspace_name
+
+  def warning(self, s):
+    print("NORMALIZATION WARNING: " + s)
 
   def normalize_source_filename(self, fn):
-    # if fn.endswith(".go"):
-    #   if not self.go_importmap:
-    #     raise Error(
-    #       "cannot normalize *.go source file names since no " +
-    #       "go_importmap was provided")
-    #   return fn
-    # else:
-    return fn
+    if fn.endswith(".go"):
+      if not self.go_importmap:
+        raise Exception(
+          "cannot normalize *.go source file names since no " +
+          "go_importmap was provided")
+      for prefix in self.go_importmap:
+        if fn.startswith(prefix):
+          return self.go_importmap[prefix] + fn[len(prefix):]
+      return fn
+    elif fn.endswith(".java"):
+      if not self.java_paths:
+        raise Exception(
+          "cannot normalize *.java source file names since no " +
+          "java_paths was provided")
+      full_path = None
+      for root in self.java_paths:
+        p = os.path.join(root, fn)
+        if os.path.exists(p):
+          if full_path:
+            self.warning(
+              ("%s can match at least two files: %s and %s: " +
+              "cannot normalize") % (
+                fn,
+                full_path,
+                p))
+            return fn
+          full_path = p
+      if not full_path:
+        p = os.path.join(self.dest_dir, self.workspace_name, fn)
+        if os.path.exists(p):
+          return p
+        self.warning("%s does not belong to any java_path; java_paths: %s" % (
+          fn,
+          ', '.join(self.java_paths)
+        ))
+        return fn
+      return os.path.relpath(full_path, self.dest_dir)
+    else:
+      return fn
 
   def normalize_coverage_dat(self, cov):
     if len(cov) == 0:
@@ -41,7 +80,9 @@ class SourceFilenameNormalizer:
     has_records = False
     for line in cov:
       if line.startswith("SF:"):
-        res.append("SF:" + self.normalize_source_filename(line[len("SF:"):]))
+        res.append(
+          "SF:" + 
+          self.normalize_source_filename(line[len("SF:"):].strip()))
       else:
         if line.startswith("DA:") or line.startswith("FNDA:"):
           has_records = True

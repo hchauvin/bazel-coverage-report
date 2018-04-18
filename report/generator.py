@@ -13,10 +13,12 @@
 # limitations under the License.
 
 import fnmatch
+import glob
 import os
 import re
 import shutil
 import subprocess
+import xml.etree.ElementTree
 
 from report import normalize
 
@@ -36,7 +38,9 @@ def _source_files_ignore(dir, children, patterns):
         res.append(child)
   return res
 
+
 _wspace_name_re = re.compile(r"workspace\s*\(\s*name\s*=\s*\"([^\"]+)\"\s*\)")
+
 
 def get_workspace_name(wspace_file):
   for line in wspace_file:
@@ -45,6 +49,44 @@ def get_workspace_name(wspace_file):
       return m.group(1)
   return None
 
+
+def get_go_importmap(project_dir, workspace_name):
+  if not os.path.exists(os.path.join(project_dir, "WORKSPACE")):
+    raise Exception(
+      "project_dir '%s' does not contain a WORKSPACE file" % project_dir)
+
+  query_str = subprocess.check_output([
+    'bazel',
+    'query',
+    'kind(_gazelle_runner, //:*)',
+    '--output=xml',
+  ])
+
+  query = xml.etree.ElementTree.fromstring(query_str)
+  gazelle_prefixes = query.findall('./rule/string[@name="prefix"]')
+  if len(gazelle_prefixes) == 0:
+    raise Exception("no gazelle rule in root BUILD file")
+  if len(gazelle_prefixes) > 1:
+    raise Exception("multiple gazelle rules in root BUILD file")
+  workspace_prefix = gazelle_prefixes[0].get('value')
+
+  return {
+    workspace_prefix: workspace_name,
+  }
+
+
+_java_paths_re = re.compile(r"^.+/src/[^/]+/java$")
+
+
+def find_java_paths(path):
+  java_paths = []
+  for root, dirnames, _ in os.walk(path):
+    for dirname in dirnames:
+      cur_path = os.path.join(root, dirname)
+      if _java_paths_re.match(cur_path):
+        java_paths.append(cur_path)
+  return java_paths
+
 class ReportGenerator:
   def __init__(
     self,
@@ -52,7 +94,8 @@ class ReportGenerator:
     project_dir,
     workspace_name = None,
     testlogs_dir = None,
-    source_file_patterns = ["*.R", "*.c"]
+    go_importmap = None,
+    source_file_patterns = ["*.R", "*.c", "*.go", "*.java"]
   ):
     if not dest_dir:
       raise Exception("dest_dir is required")
@@ -64,6 +107,7 @@ class ReportGenerator:
     self.project_dir = project_dir
     self.testlogs_dir = testlogs_dir
     self.workspace_name = workspace_name
+    self.go_importmap = go_importmap
     self.source_file_patterns = source_file_patterns
 
     if not self.workspace_name:
@@ -76,8 +120,20 @@ class ReportGenerator:
       self.testlogs_dir = os.readlink(
         os.path.join(self.project_dir, "bazel-testlogs"))
 
+    if not self.go_importmap:
+      self.go_importmap = get_go_importmap(
+        self.project_dir, 
+        self.workspace_name)
+
     self.coverage_files = []
-    self.normalizer = normalize.SourceFilenameNormalizer()
+
+  def create_normalizer(self):
+    return normalize.SourceFilenameNormalizer(
+      go_importmap = self.go_importmap,
+      java_paths = find_java_paths(self.dest_dir),
+      workspace_name = self.workspace_name,
+      dest_dir = self.dest_dir,
+    )
 
   def copy_sources(self):
     shutil.copytree(
@@ -89,12 +145,13 @@ class ReportGenerator:
         patterns = self.source_file_patterns))
 
   def copy_cov(self):
+    normalizer = self.create_normalizer()
     for root, _, files in os.walk(self.testlogs_dir):
       for f in files:
         path = os.path.join(root, f)
         if os.path.isfile(path) and f.endswith('coverage.dat'):
           with open(path, 'r') as f_cov:
-            normalized = self.normalizer.normalize_coverage_dat(
+            normalized = normalizer.normalize_coverage_dat(
               f_cov.readlines())
           if len(normalized) > 0:
             dest_root = os.path.join(
