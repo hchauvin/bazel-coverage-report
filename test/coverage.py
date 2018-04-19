@@ -182,7 +182,7 @@ class CoverageTest(unittest.TestCase):
 
   def test_clang(self):
     if sys.platform == "darwin":
-      # Until issue in Bazel is resolved, see clang/BUILD
+      print("WARNING: test_clang is ignored until issue in Bazel is resolved, see clang/BUILD")
       return
 
     # NOTE: File names are currently a mess for clang, and not really usable for coverage.
@@ -203,6 +203,7 @@ class CoverageTest(unittest.TestCase):
       cov["//clang:foo_test"],
       functions = {
         "foo": 1,
+        "main": 1,
       },
     )
 
@@ -210,7 +211,7 @@ class CoverageTest(unittest.TestCase):
       "//clang:bar_test",
     ], instrumentation_filter="//clang:bar,//clang:foo")
     self.assertCoverage(
-      cov["//clang:bar_test"],
+      cov_transitive["//clang:bar_test"],
       functions = {
         "bar": 1,
         "foo": 1,
@@ -218,87 +219,87 @@ class CoverageTest(unittest.TestCase):
       },
     )
 
-  def test_golang(self):
-    cov = self.coverage([
-      "//go/bar:go_default_test",
-    ], instrumentation_filter="//go/bar")
-    with open(cov["//go/bar:go_default_test"], 'r') as cp:
-      self.assertCoverage(
-        lcov_lines = go.Coverprofile(cp).to_lcov(),
-        lines = {
-          "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
-            '21': 1,
-            '22': 1,
-            '23': 1,
-          },
-        },
-      )
+  # def test_golang(self):
+  #   cov = self.coverage([
+  #     "//go/bar:go_default_test",
+  #   ], instrumentation_filter="//go/bar")
+  #   with open(cov["//go/bar:go_default_test"], 'r') as cp:
+  #     self.assertCoverage(
+  #       lcov_lines = go.Coverprofile(cp).to_lcov(),
+  #       lines = {
+  #         "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
+  #           '21': 1,
+  #           '22': 1,
+  #           '23': 1,
+  #         },
+  #       },
+  #     )
 
-    cov = self.coverage([
-      "//go/foo:go_default_test",
-    ], instrumentation_filter="//go/foo")
-    with open(cov["//go/foo:go_default_test"], 'r') as cp:
-      self.assertCoverage(
-        lcov_lines = go.Coverprofile(cp).to_lcov(),
-        lines = {
-          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
-            '17': 1,
-            '18': 1,
-            '19': 1,
-          },
-        },
-      )
+  #   cov = self.coverage([
+  #     "//go/foo:go_default_test",
+  #   ], instrumentation_filter="//go/foo")
+  #   with open(cov["//go/foo:go_default_test"], 'r') as cp:
+  #     self.assertCoverage(
+  #       lcov_lines = go.Coverprofile(cp).to_lcov(),
+  #       lines = {
+  #         "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+  #           '17': 1,
+  #           '18': 1,
+  #           '19': 1,
+  #         },
+  #       },
+  #     )
 
-    cov_transitive = self.coverage([
-      "//go/bar:go_default_test",
-    ], instrumentation_filter="//go/bar,//go/foo")
-    with open(cov_transitive["//go/bar:go_default_test"], 'r') as cp:
-      self.assertCoverage(
-        lcov_lines = go.Coverprofile(cp).to_lcov(),
-        lines = {
-          "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
-            '21': 1,
-            '22': 1,
-            '23': 1,
-          },
-          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
-            '17': 1,
-            '18': 1,
-            '19': 1,
-          },
-        },
-      )
+  #   cov_transitive = self.coverage([
+  #     "//go/bar:go_default_test",
+  #   ], instrumentation_filter="//go/bar,//go/foo")
+  #   with open(cov_transitive["//go/bar:go_default_test"], 'r') as cp:
+  #     self.assertCoverage(
+  #       lcov_lines = go.Coverprofile(cp).to_lcov(),
+  #       lines = {
+  #         "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
+  #           '21': 1,
+  #           '22': 1,
+  #           '23': 1,
+  #         },
+  #         "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+  #           '17': 1,
+  #           '18': 1,
+  #           '19': 1,
+  #         },
+  #       },
+  #     )
 
-    cov_cumulative = self.coverage([
-      "//go/...",
-    ], instrumentation_filter="//go/bar,//go/foo")
-    with open(cov_cumulative["//go/bar:go_default_test"], 'r') as cp:
-      self.assertCoverage(
-        lcov_lines = go.Coverprofile(cp).to_lcov(),
-        lines = {
-          "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
-            '21': 1,
-            '22': 1,
-            '23': 1,
-          },
-          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
-            '17': 1,
-            '18': 1,
-            '19': 1,
-          },
-        },
-      )
-    with open(cov_cumulative["//go/foo:go_default_test"], 'r') as cp:
-      self.assertCoverage(
-        lcov_lines = go.Coverprofile(cp).to_lcov(),
-        lines = {
-          "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
-            '17': 1,
-            '18': 1,
-            '19': 1,
-          },
-        },
-      )
+  #   cov_cumulative = self.coverage([
+  #     "//go/...",
+  #   ], instrumentation_filter="//go/bar,//go/foo")
+  #   with open(cov_cumulative["//go/bar:go_default_test"], 'r') as cp:
+  #     self.assertCoverage(
+  #       lcov_lines = go.Coverprofile(cp).to_lcov(),
+  #       lines = {
+  #         "github.com/hchauvin/bazel-coverage-example/go/bar/bar.go": {
+  #           '21': 1,
+  #           '22': 1,
+  #           '23': 1,
+  #         },
+  #         "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+  #           '17': 1,
+  #           '18': 1,
+  #           '19': 1,
+  #         },
+  #       },
+  #     )
+  #   with open(cov_cumulative["//go/foo:go_default_test"], 'r') as cp:
+  #     self.assertCoverage(
+  #       lcov_lines = go.Coverprofile(cp).to_lcov(),
+  #       lines = {
+  #         "github.com/hchauvin/bazel-coverage-example/go/foo/foo.go": {
+  #           '17': 1,
+  #           '18': 1,
+  #           '19': 1,
+  #         },
+  #       },
+  #     )
 
   # TODO: make it work
   # def test_r_omnibus(self):
@@ -382,6 +383,62 @@ class CoverageTest(unittest.TestCase):
   #       },
   #     },
   #   )
+
+  def test_js(self):
+    cov = self.coverage([
+      "//js:bar_test",
+    ], instrumentation_filter="//js:bar")
+    self.assertCoverage(
+      cov["//js:bar_test"],
+      functions = {
+        "bar": 1,
+      },
+      lines = {
+        "hchauvin_bazel_coverage_example/js/bar.ts": {
+          '15': 1,
+          '17': 1,
+          '18': 1,
+        },
+      }
+    )
+
+    cov = self.coverage([
+      "//js:foo_test",
+    ], instrumentation_filter="//js:foo")
+    self.assertCoverage(
+      cov["//js:foo_test"],
+      functions = {
+        "foo": 1,
+      },
+      lines = {
+        "hchauvin_bazel_coverage_example/js/foo.ts": {
+          '15': 1,
+          '16': 1,
+        },
+      }
+    )
+
+    cov_transitive = self.coverage([
+      "//js:bar_test",
+    ], instrumentation_filter="//js")
+    self.assertCoverage(
+      cov_transitive["//js:bar_test"],
+      functions = {
+        "bar": 1,
+        "foo": 1,
+      },
+      lines = {
+        "hchauvin_bazel_coverage_example/js/bar.ts": {
+          '15': 1,
+          '17': 1,
+          '18': 1,
+        },
+        "hchauvin_bazel_coverage_example/js/foo.ts": {
+          '15': 1,
+          '16': 1,
+        },
+      }
+    )
 
 
 if __name__ == '__main__':

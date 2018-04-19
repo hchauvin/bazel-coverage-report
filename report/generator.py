@@ -95,7 +95,7 @@ class ReportGenerator:
     workspace_name = None,
     testlogs_dir = None,
     go_importmap = None,
-    source_file_patterns = ["*.R", "*.c", "*.go", "*.java"]
+    source_file_patterns = ["*.R", "*.c", "*.go", "*.java", "*.ts"]
   ):
     if not dest_dir:
       raise Exception("dest_dir is required")

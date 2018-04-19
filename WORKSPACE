@@ -197,3 +197,36 @@ new_local_repository(
 )
 
 covr_dependencies(cran_path = "../rules_r/R/cran")
+
+# git_repository(
+#     name = "build_bazel_rules_nodejs",
+#     remote = "https://github.com/bazelbuild/rules_nodejs.git",
+#     tag = "0.7.0",
+# )
+local_repository(
+    name = "build_bazel_rules_nodejs",
+    path = "../rules_nodejs",
+)
+
+load("@build_bazel_rules_nodejs//:defs.bzl", "node_repositories")
+
+# NOTE: this rule installs nodejs, npm, and yarn, but does NOT install
+# your npm dependencies into your node_modules folder.
+# You must still run the package manager to do this.
+node_repositories(package_json = ["//:package.json"])
+
+load("@build_bazel_rules_nodejs//:defs.bzl", "npm_install")
+
+npm_install(
+    name = "js_deps",
+    package_json = "//:package.json",
+)
+
+local_repository(
+    name = "build_bazel_rules_typescript",
+    path = "../rules_typescript",
+)
+
+load("@build_bazel_rules_typescript//:defs.bzl", "ts_setup_workspace")
+
+ts_setup_workspace()
