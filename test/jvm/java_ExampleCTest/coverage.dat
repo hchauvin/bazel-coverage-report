@@ -1,0 +1,26 @@
+SF:hchauvin_bazel_coverage_report/test/jvm/src/main/java/com/github/hchauvin/bazelcoverageexample/Foo.java
+FN:21,com/github/hchauvin/bazelcoverageexample/Foo::<init> ()V
+
+FNDA:0,com/github/hchauvin/bazelcoverageexample/Foo::<init> ()V
+
+FN:24,com/github/hchauvin/bazelcoverageexample/Foo::exampleA ()Ljava/lang/String;
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/Foo::exampleA ()Ljava/lang/String;
+
+FN:28,com/github/hchauvin/bazelcoverageexample/Foo::exampleB ()Ljava/lang/String;
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/Foo::exampleB ()Ljava/lang/String;
+
+FN:32,com/github/hchauvin/bazelcoverageexample/Foo::exampleC ()Ljava/util/List;
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/Foo::exampleC ()Ljava/util/List;
+
+DA:21,0
+
+DA:24,2
+
+DA:28,2
+
+DA:32,20
+
+end_of_record

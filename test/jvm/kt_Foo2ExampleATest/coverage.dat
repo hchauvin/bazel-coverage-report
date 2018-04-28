@@ -1,0 +1,41 @@
+SF:hchauvin_bazel_coverage_report/test/jvm/src/main/kotlin/com/github/hchauvin/bazelcoverageexample/Foo2Kotlin.kt
+FN:18,com/github/hchauvin/bazelcoverageexample/Foo2Kotlin::exampleA ()Ljava/lang/String;
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/Foo2Kotlin::exampleA ()Ljava/lang/String;
+
+FN:17,com/github/hchauvin/bazelcoverageexample/Foo2Kotlin::<init> ()V
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/Foo2Kotlin::<init> ()V
+
+DA:17,3
+
+DA:18,5
+
+end_of_record
+
+SF:hchauvin_bazel_coverage_report/test/jvm/src/main/kotlin/com/github/hchauvin/bazelcoverageexample/FooKotlin.kt
+FN:18,com/github/hchauvin/bazelcoverageexample/FooKotlin::exampleA ()Ljava/lang/String;
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/FooKotlin::exampleA ()Ljava/lang/String;
+
+FN:19,com/github/hchauvin/bazelcoverageexample/FooKotlin::exampleB ()Ljava/lang/String;
+
+FNDA:0,com/github/hchauvin/bazelcoverageexample/FooKotlin::exampleB ()Ljava/lang/String;
+
+FN:20,com/github/hchauvin/bazelcoverageexample/FooKotlin::exampleC ()Ljava/util/List;
+
+FNDA:0,com/github/hchauvin/bazelcoverageexample/FooKotlin::exampleC ()Ljava/util/List;
+
+FN:17,com/github/hchauvin/bazelcoverageexample/FooKotlin::<init> ()V
+
+FNDA:1,com/github/hchauvin/bazelcoverageexample/FooKotlin::<init> ()V
+
+DA:17,3
+
+DA:18,2
+
+DA:19,0
+
+DA:20,0
+
+end_of_record
