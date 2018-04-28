@@ -1,9 +1,0 @@
-Package: exampleC
-Title: "Example package C"
-Version: 1.0.0
-Description: "Example package to demonstrate building an R package using Bazel."
-Author: Siddhartha Bagaria <siddharthab@users.noreply.github.com>
-Maintainer: Siddhartha Bagaria <siddharthab@users.noreply.github.com>
-Imports: exampleB
-Suggests: testthat, RProtoBuf
-License: file LICENSE

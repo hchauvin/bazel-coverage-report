@@ -11,63 +11,89 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Normalize source filenames in LCOV data files.
+
+The meaning of the source filenames in an LCOV data file currently depends
+on the rule that generated the file.  This module provides a common meaning:
+all the file names must be relative to the execroot.
+"""
 
 import os
 
 from report import go
 
-class SourceFilenameNormalizer:
-  def __init__(self, go_importmap = None, java_paths = None, workspace_name = None, dest_dir = None):
+
+def _warning(s):
+  print "NORMALIZATION WARNING: " + s
+
+
+class SourceFilenameNormalizer(object):
+  """Source filename normalizer."""
+
+  def __init__(self,
+               go_importmap=None,
+               java_paths=None,
+               workspace_name=None,
+               dest_dir=None):
     self.go_importmap = go_importmap
     self.java_paths = java_paths
     self.dest_dir = dest_dir
     self.workspace_name = workspace_name
 
-  def warning(self, s):
-    print("NORMALIZATION WARNING: " + s)
+  def _normalize_go(self, fn):
+    if not self.go_importmap:
+      raise Exception("cannot normalize *.go source file names since no " +
+                      "go_importmap was provided")
+    for prefix in self.go_importmap:
+      if fn.startswith(prefix):
+        return self.go_importmap[prefix] + fn[len(prefix):]
+    return fn
+
+  def _normalize_jvm(self, fn):
+    if not self.java_paths:
+      raise Exception("cannot normalize JVM source file names since no " +
+                      "java_paths was provided")
+    full_path = None
+    for root in self.java_paths:
+      p = os.path.join(root, fn)
+      if os.path.exists(p):
+        if full_path:
+          _warning(("%s can match at least two files: %s and %s: " +
+                    "cannot normalize") % (fn, full_path, p))
+          return fn
+        full_path = p
+    if not full_path:
+      p = os.path.join(self.dest_dir, self.workspace_name, fn)
+      if os.path.exists(p):
+        return p
+      _warning("%s does not belong to any java_path; java_paths: %s" %
+               (fn, ', '.join(self.java_paths)))
+      return fn
+    return os.path.relpath(full_path, self.dest_dir)
 
   def normalize_source_filename(self, fn):
+    """Normalize a source filename.
+
+    Args:
+      fn: The source filename to normalize.
+
+    Returns: The normalized source filename.
+    """
     if fn.endswith(".go"):
-      if not self.go_importmap:
-        raise Exception(
-          "cannot normalize *.go source file names since no " +
-          "go_importmap was provided")
-      for prefix in self.go_importmap:
-        if fn.startswith(prefix):
-          return self.go_importmap[prefix] + fn[len(prefix):]
-      return fn
-    elif fn.endswith(".java"):
-      if not self.java_paths:
-        raise Exception(
-          "cannot normalize *.java source file names since no " +
-          "java_paths was provided")
-      full_path = None
-      for root in self.java_paths:
-        p = os.path.join(root, fn)
-        if os.path.exists(p):
-          if full_path:
-            self.warning(
-              ("%s can match at least two files: %s and %s: " +
-              "cannot normalize") % (
-                fn,
-                full_path,
-                p))
-            return fn
-          full_path = p
-      if not full_path:
-        p = os.path.join(self.dest_dir, self.workspace_name, fn)
-        if os.path.exists(p):
-          return p
-        self.warning("%s does not belong to any java_path; java_paths: %s" % (
-          fn,
-          ', '.join(self.java_paths)
-        ))
-        return fn
-      return os.path.relpath(full_path, self.dest_dir)
+      return self._normalize_go(fn)
+    elif fn.endswith(".java") or fn.endswith(".kt"):
+      return self._normalize_jvm(fn)
     else:
       return fn
 
   def normalize_coverage_dat(self, cov):
+    """Normalize some LCOV coverage data, with respect to source filenames.
+
+    Args:
+      cov: An array of lines of an LCOV data file.
+
+    Returns: A normalized array of lines.
+    """
     if len(cov) == 0:
       return []
 
@@ -81,13 +107,12 @@ class SourceFilenameNormalizer:
     for line in cov:
       if line.startswith("SF:"):
         res.append(
-          "SF:" + 
-          self.normalize_source_filename(line[len("SF:"):].strip()))
+            "SF:" + self.normalize_source_filename(line[len("SF:"):].strip()))
       else:
         if line.startswith("DA:") or line.startswith("FNDA:"):
           has_records = True
         res.append(line)
 
     if not has_records:
-      return []    
+      return []
     return res

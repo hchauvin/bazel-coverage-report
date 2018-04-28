@@ -1,5 +1,5 @@
 {
-  "name": "hchauvin_bazel_coverage_example",
+  "name": "hchauvin_bazel_coverage_report",
   "version": "0.0.1",
   "devDependencies": {
     "jasmine": "~2.8.0",

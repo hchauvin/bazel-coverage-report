@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-workspace(name = "hchauvin_bazel_coverage_example")
+workspace(name = "hchauvin_bazel_coverage_report")
 
 http_archive(
     name = "com_google_protobuf",
@@ -43,169 +43,22 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
 
 gazelle_dependencies()
 
-local_repository(
+git_repository(
     name = "com_grail_rules_r",
-    path = "../rules_r",
+    commit = "b817de35084b540cd9135f5a786044d83ff1dea5",
+    remote = "https://github.com/hchauvin/rules_r.git",
 )
 
-new_http_archive(
-    name = "R_bitops",
-    build_file = "R/cran/BUILD.bitops",
-    sha256 = "9b731397b7166dd54941fb0d2eac6df60c7a483b2e790f7eb15b4d7b79c9d69c",
-    strip_prefix = "bitops",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/bitops_1.0-6.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/bitops/bitops_1.0-6.tar.gz",
-    ],
-)
+load("@com_grail_rules_r//R:dependencies.bzl", "r_rules_dependencies", "r_coverage_dependencies")
 
-new_http_archive(
-    name = "R_crayon",
-    build_file = "R/cran/BUILD.crayon",
-    sha256 = "9a6b75d63c05fe64baf222f1921330ceb727924bcc5fc2753ff0528d42555e68",
-    strip_prefix = "crayon",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/crayon_1.3.2.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/crayon/crayon_1.3.2.tar.gz",
-    ],
-)
+r_rules_dependencies()
 
-new_http_archive(
-    name = "R_digest",
-    build_file = "R/cran/BUILD.digest",
-    sha256 = "a479463f120037ad8e88bb1387170842e635a1f07ce7e3575316efd6e14d9eab",
-    strip_prefix = "digest",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/digest_0.6.12.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/digest/digest_0.6.12.tar.gz",
-    ],
-)
+r_coverage_dependencies()
 
-new_http_archive(
-    name = "R_magrittr",
-    build_file = "R/cran/BUILD.magrittr",
-    sha256 = "05c45943ada9443134caa0ab24db4a962b629f00b755ccf039a2a2a7b2c92ae8",
-    strip_prefix = "magrittr",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/magrittr_1.5.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/magrittr/magrittr_1.5.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_praise",
-    build_file = "R/cran/BUILD.praise",
-    sha256 = "5c035e74fd05dfa59b03afe0d5f4c53fbf34144e175e90c53d09c6baedf5debd",
-    strip_prefix = "praise",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/praise_1.0.0.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/praise/praise_1.0.0.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_R6",
-    build_file = "R/cran/BUILD.R6",
-    sha256 = "087756f471884c3b3ead80215a7cc5636a78b8a956e91675acfe2896426eae8f",
-    strip_prefix = "R6",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/R6_2.2.2.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/R6/R6_2.2.2.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_RCurl",
-    build_file = "R/cran/BUILD.RCurl",
-    sha256 = "e72243251bbbec341bc5864305bb8cc23d311d19c5d0d9310afec7eb35aa2bfb",
-    strip_prefix = "RCurl",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/RCurl_1.95-4.8.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/RCurl/RCurl_1.95-4.8.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_RProtoBuf",
-    build_file = "R/cran/BUILD.RProtoBuf",
-    sha256 = "35c4274af518c686db99f93b7372f8c1edd37ae00b3c4b024bf355bb0898de3a",
-    strip_prefix = "RProtoBuf",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/RProtoBuf_0.4.10.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/RProtoBuf/RProtoBuf_0.4.10.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_Rcpp",
-    build_file = "R/cran/BUILD.Rcpp",
-    sha256 = "9f3eb1e6154f4d56b52ab550a22e522e9999c7998388fdc235e48af5e8c6deaf",
-    strip_prefix = "Rcpp",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/Rcpp_0.12.12.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/Rcpp/Rcpp_0.12.12.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_testthat",
-    build_file = "R/cran/BUILD.testthat",
-    sha256 = "0ef7df0ace1fddf821d329f9d9a5d42296085350ae0d94af62c45bd203c8415e",
-    strip_prefix = "testthat",
-    urls = [
-        "https://cloud.r-project.org/src/contrib/testthat_1.0.2.tar.gz",
-        "https://cloud.r-project.org/src/contrib/Archive/testthat/testthat_1.0.2.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_Rgraphviz",
-    build_file = "R/cran/BUILD.Rgraphviz",
-    sha256 = "1bfb8ac90df797365cf883813505f3b63a01061f515c009924c424e59cf436f9",
-    strip_prefix = "Rgraphviz",
-    urls = [
-        "https://bioconductor.org/packages/release/bioc/src/contrib/Rgraphviz_2.22.0.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_graph",
-    build_file = "R/cran/BUILD.graph",
-    sha256 = "c12a519e9984ca2e134a8bef75aac63be59a33691e2206d025e10b88ae944a95",
-    strip_prefix = "graph",
-    urls = [
-        "https://bioconductor.org/packages/release/bioc/src/contrib/graph_1.56.0.tar.gz",
-    ],
-)
-
-new_http_archive(
-    name = "R_BiocGenerics",
-    build_file = "R/cran/BUILD.BiocGenerics",
-    sha256 = "517d31c47d7d807170031e116af3ffeba57baca3980ef4d85b37c2ec3bdc9d0f",
-    strip_prefix = "BiocGenerics",
-    urls = [
-        "https://bioconductor.org/packages/release/bioc/src/contrib/BiocGenerics_0.24.0.tar.gz",
-    ],
-)
-
-load("@com_grail_rules_r//R:covr.bzl", "covr_dependencies")
-
-new_local_repository(
-    name = "R_covr",
-    build_file = "../rules_r/R/cran/BUILD.covr",
-    path = "../covr",
-)
-
-covr_dependencies(cran_path = "../rules_r/R/cran")
-
-# git_repository(
-#     name = "build_bazel_rules_nodejs",
-#     remote = "https://github.com/bazelbuild/rules_nodejs.git",
-#     tag = "0.7.0",
-# )
-local_repository(
+git_repository(
     name = "build_bazel_rules_nodejs",
-    path = "../rules_nodejs",
+    commit = "a879a9cde370775b0642776065d07904afcac466",
+    remote = "https://github.com/hchauvin/rules_nodejs.git",
 )
 
 load("@build_bazel_rules_nodejs//:defs.bzl", "node_repositories")
@@ -222,11 +75,59 @@ npm_install(
     package_json = "//:package.json",
 )
 
-local_repository(
+git_repository(
     name = "build_bazel_rules_typescript",
-    path = "../rules_typescript",
+    commit = "1cab5c4fc8618149068f8cd5b4382e3c2eff0bd0",
+    remote = "https://github.com/hchauvin/rules_typescript.git",
 )
 
 load("@build_bazel_rules_typescript//:defs.bzl", "ts_setup_workspace")
 
 ts_setup_workspace()
+
+git_repository(
+    name = "io_bazel_rules_kotlin",
+    commit = "2d52faa1203390ebd1ec6a219b112dc7a1307a19",
+    remote = "https://github.com/hchauvin/rules_kotlin.git",
+)
+
+load("@io_bazel_rules_kotlin//kotlin:kotlin.bzl", "kotlin_repositories", "kt_register_toolchains")
+
+kotlin_repositories(kotlin_release_version = "1.2.30")
+
+kt_register_toolchains()
+
+load("@bazel_tools//tools/build_defs/repo:java.bzl", "java_import_external")
+
+java_import_external(
+    name = "junit",
+    jar_sha256 = "59721f0805e223d84b90677887d9ff567dc534d7c502ca903c0c2b17f05c116a",
+    jar_urls = [
+        "http://repo1.maven.org/maven2/junit/junit/4.12/junit-4.12.jar",
+        "http://maven.ibiblio.org/maven2/junit/junit/4.12/junit-4.12.jar",
+    ],
+    licenses = ["reciprocal"],  # Eclipse Public License 1.0
+    deps = ["@org_hamcrest_core"],
+)
+
+java_import_external(
+    name = "org_hamcrest_core",
+    jar_sha256 = "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9",
+    jar_urls = [
+        "http://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar",
+        "http://maven.ibiblio.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar",
+    ],
+    licenses = ["notice"],  # New BSD License
+)
+
+## Linting
+
+load("//private:format.bzl", "format_repositories")
+
+format_repositories()
+
+## Report generator
+
+load("//report:defs.bzl", "bazel_coverage_report_repositories")
+
+bazel_coverage_report_repositories()

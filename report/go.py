@@ -11,19 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Temporary bridge to `rules_go` coverage representation.
+
+Currently, `rules_go` reports in coverprofile, not in LCOV format."""
 
 # This is inspired by Golang package golang.org/x/tools/cover.
 
 import re
 
+
 class GoCoverprofileParseException(Exception):
-    pass
+  """Raised when the parsing of a coverprofile fails."""
+  pass
+
 
 _line_re = re.compile(
-  r"^(.+):([0-9]+).([0-9]+),([0-9]+).([0-9]+) ([0-9]+) ([0-9]+)$")
+    r"^(.+):([0-9]+).([0-9]+),([0-9]+).([0-9]+) ([0-9]+) ([0-9]+)$")
 
-class Coverprofile:
+
+class Coverprofile(object):  # pylint: disable=too-few-public-methods
+  """Represents a coverprofile coverage report."""
+
   def __init__(self, f):
+    """Parses a Go coverprofile.
+
+    Args:
+      f: An array of coverprofile lines.
+    """
     self._parse_coverprofile(f)
 
   def _parse_coverprofile(self, f):
@@ -33,33 +47,37 @@ class Coverprofile:
       line = line.strip()
 
       if not mode:
-        p = "mode: "
-        if line[:len(p)] != p:
+        pattern = "mode: "
+        if line[:len(pattern)] != pattern:
           raise GoCoverprofileParseException("bad mode line: %s" % line)
-        mode = line[len(p):]
+        mode = line[len(pattern):]
         continue
 
       m = _line_re.match(line)
       if not m:
         raise GoCoverprofileParseException(
-          "line %s doesn't match expected format: %s" % 
-            (line, _line_re.pattern))
-      fn = m.group(1)
-      p = self.data.get(fn, None)
-      if not p:
-        p = {}
-        self.data[fn] = p
+            "line %s doesn't match expected format: %s" % (line,
+                                                           _line_re.pattern))
+      filename = m.group(1)
+      filename_data = self.data.get(filename, None)
+      if not filename_data:
+        filename_data = {}
+        self.data[filename] = filename_data
       start_line = int(m.group(2))
       end_line = int(m.group(4))
       count = int(m.group(7))
-      for lineno in range(start_line, end_line+1):
-        p[lineno] = p.get(lineno, 0) + count
+      for lineno in range(start_line, end_line + 1):
+        filename_data[lineno] = filename_data.get(lineno, 0) + count
 
   def to_lcov(self):
+    """Converts the coverprofile to the LCOV format.
+
+    Returns: An array of lines in LCOV format.
+    """
     lines = []
-    for file in self.data:
-      lines.append("SF:%s" % file)
-      for lineno in self.data[file]:
-        lines.append("DA:%d,%d" % (lineno, self.data[file][lineno]))
+    for f in self.data:
+      lines.append("SF:%s" % f)
+      for lineno in self.data[f]:
+        lines.append("DA:%d,%d" % (lineno, self.data[f][lineno]))
       lines.append("end_of_record")
     return lines

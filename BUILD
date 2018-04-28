@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+licenses(["notice"])  # Apache 2.0
+
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
 gazelle(
     name = "gazelle",
-    prefix = "github.com/hchauvin/bazel-coverage-example",
+    prefix = "github.com/hchauvin/bazel-coverage-report",
 )
 
 exports_files(["package.json"])
@@ -29,7 +31,7 @@ filegroup(
     srcs = glob([
         "node_modules/**/*.js",
         "node_modules/**/*.d.ts",
-        "node_modules/**/*.json"
+        "node_modules/**/*.json",
     ]),
     visibility = ["//visibility:public"],
 )

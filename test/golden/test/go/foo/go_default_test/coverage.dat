@@ -1,0 +1,2 @@
+mode: set
+github.com/hchauvin/bazel-coverage-report/test/go/foo/foo.go:17.16,19.2 1 1

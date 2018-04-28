@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Entry point for the command-line coverage report generator."""
 
 import argparse
 import os
@@ -19,12 +20,14 @@ import sys
 
 from report import generator
 
+
 def main(argv=None):
+  """Program entry point."""
   if argv is None:
     argv = sys.argv
 
   parser = argparse.ArgumentParser(
-    description='Bazel Coverage Report Generator')
+      description='Bazel Coverage Report Generator')
   parser.add_argument("--dest_dir", type=str, default="/tmp/cov_report")
   parser.add_argument("--project_dir", type=str, default=os.getcwd())
 
@@ -36,14 +39,16 @@ def main(argv=None):
 
   # TODO: deal gracefully with exceptions
 
-  rg = generator.ReportGenerator(dest_dir = args.dest_dir, project_dir = args.project_dir)
-  rg.copy_sources()
-  rg.copy_cov()
-  rg.genhtml()
+  gen = generator.ReportGenerator(
+      dest_dir=args.dest_dir, project_dir=args.project_dir)
+  gen.copy_sources()
+  gen.copy_cov()
+  gen.genhtml()
 
-  print("coverage report at %s" % rg.report_index_url())
+  print "coverage report at %s" % gen.report_index_url()
 
   return 0
+
 
 if __name__ == "__main__":
   sys.exit(main())
