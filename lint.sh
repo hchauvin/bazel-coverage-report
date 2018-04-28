@@ -239,7 +239,7 @@ function skylint() {
 function py_lint() {
   pylint \
     --reports=no \
-    --disable=import-error,invalid-name,fixme,locally-disabled \
+    --disable=import-error,invalid-name,fixme,locally-disabled,len-as-condition \
     --indent-string="  " \
     --expected-line-ending-format=LF \
     $(find "$BASE" -type f -name "*.py" -not -wholename "*/node_modules/*")

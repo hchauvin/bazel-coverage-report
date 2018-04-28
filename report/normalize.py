@@ -83,8 +83,7 @@ class SourceFilenameNormalizer(object):
       return self._normalize_go(fn)
     elif fn.endswith(".java") or fn.endswith(".kt"):
       return self._normalize_jvm(fn)
-    else:
-      return fn
+    return fn
 
   def normalize_coverage_dat(self, cov):
     """Normalize some LCOV coverage data, with respect to source filenames.
