@@ -12,8 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+licenses(["notice"])  # Apache 2.0
+
 java_binary(
     name = "java_format",
     main_class = "com.google.googlejavaformat.java.Main",
     runtime_deps = ["@google_java_format"],
+)
+
+load("@format_py_deps//:requirements.bzl", "requirement")
+
+py_binary(
+    name = "pylint_bin",
+    srcs = ["pylint_bin.py"],
+    deps = [
+        requirement("pylint"),
+        requirement("enum34"),
+        requirement("lazy-object-proxy"),
+        requirement("wrapt"),
+    ],
 )

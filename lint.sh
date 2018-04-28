@@ -131,6 +131,7 @@ function build() {
   bazel build --color=yes --show_progress_rate_limit=30 \
     @io_bazel//src/tools/skylark/java/com/google/devtools/skylark/skylint:Skylint \
     //private:java_format \
+    //private:pylint_bin \
     @com_github_google_yapf//:yapf \
     @io_bazel_buildifier_linux//file \
     @io_bazel_buildifier_darwin//file
@@ -237,12 +238,17 @@ function skylint() {
 }
 
 function py_lint() {
-  pylint \
-    --reports=no \
-    --disable=import-error,invalid-name,fixme,locally-disabled,len-as-condition \
-    --indent-string="  " \
-    --expected-line-ending-format=LF \
-    $(find "$BASE" -type f -name "*.py" -not -wholename "*/node_modules/*")
+  # Concerning the python path: pylint uses for loading its reporters the function
+  # `modpath_from_file` in `module astroid.modutils`.  Unfortunately, this function
+  # uses the realpath of the file, but the PYTHONPATH is currently made of the module
+  # within the runfiles, and they are all symlinked.
+  PYTHONPATH=$(readlink bazel-bin/private/pylint_bin.runfiles/pypi__pylint_1_8_4/pylint/__init__.py)/../.. \
+    bazel-bin/private/pylint_bin \
+      $(find "$BASE" -type f -name "*.py" -not -wholename "*/node_modules/*") \
+      --reports=no \
+      --disable=import-error,invalid-name,fixme,locally-disabled,len-as-condition \
+      --indent-string="  " \
+      --expected-line-ending-format=LF
 }
 
 SUMMARY=""

@@ -126,6 +126,23 @@ load("//private:format.bzl", "format_repositories")
 
 format_repositories()
 
+git_repository(
+    name = "io_bazel_rules_python",
+    commit = "c741df316b9eab2c9160835398394c854e753b91",
+    remote = "https://github.com/hchauvin/rules_python.git",
+)
+
+load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
+
+pip_import(
+    name = "format_py_deps",
+    requirements = "//private:requirements.txt",
+)
+
+load("@format_py_deps//:requirements.bzl", "pip_install")
+
+pip_install()
+
 ## Report generator
 
 load("//report:defs.bzl", "bazel_coverage_report_repositories")

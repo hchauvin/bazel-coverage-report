@@ -11,24 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Pylint wrapper."""
+import sys
 
-licenses(["notice"])  # Apache 2.0
+from pylint import run_pylint
 
-py_library(
-    name = "report",
-    srcs = glob(
-        ["*.py"],
-        exclude = ["main.py"],
-    ),
-    data = ["@lcov//:bin"],
-    visibility = ["//visibility:public"],
-)
-
-py_binary(
-    name = "bin",
-    srcs = ["main.py"],
-    main = "main.py",
-    deps = ["//report"],
-)
-
-exports_files(["requirements.txt"])
+if __name__ == '__main__':
+  sys.argv[0] = 'pylint'
+  sys.exit(run_pylint())

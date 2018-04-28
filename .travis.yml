@@ -13,7 +13,6 @@ addons:
     packages:
       - bazel
       - r-recommended
-      - pylint
 
 script:
   - ./lint.sh
