@@ -1,6 +1,6 @@
 # `bazel-coverage-report`
 
-**Unmaintained: Please look at forks instead!**
+**Not maintained: Please look at forks instead!**
 
 [![Build Status](https://travis-ci.org/hchauvin/bazel-coverage-report.svg?branch=master)](https://travis-ci.org/hchauvin/bazel-coverage-report)
 
